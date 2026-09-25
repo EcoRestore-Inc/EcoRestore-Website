@@ -83,7 +83,7 @@
 
   <p class="map-caption">
     🌿 <strong>93 total nurseries across 72 cities</strong><br>
-       <strong>27 Florida counties</strong> from the Panhandle to the Keys
+       <strong>42 Florida counties</strong> from the Panhandle to the Keys
   </p>
 </section>
 
@@ -139,7 +139,7 @@
     "Groveland": ["Green Isle Gardens", "Things That Grow"],
     "Fort Myers": ["All Native Garden Center & Plant Nursery"],
     "North Fort Myers": ["Deep South Native Nurseries"],
-    "Sanibel": ["SCCF Native Landscapes & Garden Center"],
+    "Sanibel": ["SCCF Native Landscapes & Garden Center", "R. S. Walsh Landscaping Inc.-In The Garden"],
     "Monticello": ["Apalachee Native Nursery"],
     "Tallahassee": ["Earth Balance Native Nurseries of Tallahassee Inc."],
     "Myakka City": ["McKeithen Growers Inc."],
@@ -156,26 +156,29 @@
     "Christmas": ["Green Images Native Landscape Plants"],
     "Ocoee": ["My Florida Meadow"],
     "Orlando": ["Orlando Native Plants (An Urban Nursery)"],
-    "Lake Worth": ["Amelia’s SmartyPlants", "Meadow Beauty Nursery"],
+    "Lake Worth": ["Amelia’s SmartyPlants", "Meadow Beauty Nursery", "Grand Lux Flowers & Trees", "Indian Trails Native Nursery"],
     "West Palm Beach": ["Cottage Garden"],
     "Loxahatchee Groves": ["Native Choice"],
     "Boynton Beach": ["Sustainscape Native Nursery & Design"],
     "Zephyrhills": ["Bee Happy Native Nursery"],
-    "Largo": ["Butterfly Habitat Restoration"],
+    "Largo": ["Butterfly Habitat Restoration", "Wilcox Nursery And Landscape"],
     "St Petersburg": ["Twigs & Leaves"],
     "Davenport": ["The Natives"],
     "Lakeland": ["The Nectary"],
     "Hawthorne": ["Chiappini Farm Native Nursery"],
     "Milton": ["Crazy Native Plant Lady"],
     "Sarasota": ["Florida Native Plants Nursery & Landscaping", "Paradise Found Nursery", "Stocking Savvy"],
-    "St Augustine": ["Native Plant Consulting"],
+    "St Augustine": ["Native Plant Consulting", "Southern Horticulture"],
     "Longwood": ["Brantley Nurseries"],
     "Oxford": ["Fairfield Farms"],
     "Perry": ["Whitfield & Daughters (Turkey Roost Nursery)"],
     "Edgewater": ["Asclepias Acres"],
     "De Leon Springs": ["Dune Sunflower Nursery"],
     "Pierson": ["Flowing Well Tree Farm"],
-    "Defuniak Springs": ["7 Pines Native Plant Nursery"]
+    "Defuniak Springs": ["7 Pines Native Plant Nursery"],
+    "Spring Hill": ["Greendreams"],
+    "Lake Panasoffkee": ["Wendel's Farm & Nursery"],
+    "New Smyrna Beach": ["Lindley's Garden Center"]
   };
 
   // Coordinates lookup
@@ -248,8 +251,24 @@
     "Edgewater": [28.984, -80.902],
     "De Leon Springs": [29.121, -81.353],
     "Pierson": [29.241, -81.457],
-    "Defuniak Springs": [30.721, -86.113]
+    "Defuniak Springs": [30.721, -86.113],
+    "Spring Hill": [28.555, -82.387],
+    "Lake Panasoffkee": [28.949, -82.003],
+    "New Smyrna Beach": [29.121, -81.353]
   };
+
+  // One marker per distinct coordinate; cities at the same point share a tooltip
+  function groupedPoints() {
+    const points = {};
+    Object.keys(nurseries).forEach(city => {
+      const latlon = coords[city];
+      if (!latlon) return;
+      const key = latlon.join(',');
+      if (!points[key]) points[key] = { lat: latlon[0], lon: latlon[1], parts: [] };
+      points[key].parts.push(`<strong>${city}</strong><br>${nurseries[city].join('<br>')}`);
+    });
+    return Object.values(points).map(p => ({ lat: p.lat, lon: p.lon, html: p.parts.join('<br><br>') }));
+  }
 
     // Build the map
   function initFloridaMap() {
@@ -291,12 +310,8 @@
           }).addTo(map);
         }
 
-        // Add green dot markers on top
-        Object.keys(nurseries).forEach(city => {
-          const latlon = coords[city];
-          if (!latlon) return;
-          const [lat, lon] = latlon;
-
+        // Add green dot markers on top (cities sharing a coordinate share one dot)
+        groupedPoints().forEach(({ lat, lon, html }) => {
           const marker = L.circleMarker([lat, lon], {
             radius: 5,
             color: '#10b981',     // stroke
@@ -305,23 +320,19 @@
             fillOpacity: 1
           }).addTo(map);
 
-          const html = `<strong>${city}</strong><br>${nurseries[city].join('<br>')}`;
           marker.bindTooltip(html, { direction: 'top', offset: [0, -6], opacity: 0.95, sticky: true });
         });
       })
       .catch(() => {
         // Fallback: even if FL outline fails, still plot dots
-        Object.keys(nurseries).forEach(city => {
-          const latlon = coords[city];
-          if (!latlon) return;
-          const [lat, lon] = latlon;
+        groupedPoints().forEach(({ lat, lon, html }) => {
           L.circleMarker([lat, lon], {
             radius: 5,
             color: '#10b981',
             weight: 1,
             fillColor: '#10b981',
             fillOpacity: 1
-          }).addTo(map).bindTooltip(`<strong>${city}</strong><br>${nurseries[city].join('<br>')}`, { direction: 'top', offset: [0, -6], opacity: 0.95, sticky: true });
+          }).addTo(map).bindTooltip(html, { direction: 'top', offset: [0, -6], opacity: 0.95, sticky: true });
         });
       });
   }
